@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Attendance Tracker | Live Demo</title>
+<style>
+/* ===== CSS: ប្តូរពណ៍ទាំងមូលតាមរយៈអថេរក្នុង :root ខាងក្រោម =====
+   --p = ពណ៍ Purple ចម្បង (ឧ. #7c3aed), --bg = ផ្ទៃខាងក្រោយ, --surface = ពណ៍ Card
+   បន្ទាត់ទីពីរមាន Dark mode (ក្នុង @media prefers-color-scheme: dark) */
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f5fb;--surface:#fff;--text:#1a1a2e;--muted:#6b6b80;--line:#e8e6f2;--p:#7c3aed;--p2:#ede9fe;--ok:#16a34a;--bad:#dc2626;--warn:#d97706;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13111c;--surface:#1c1929;--text:#f1eefc;--muted:#a09bb8;--line:#2e2a44;--p:#8b5cf6;--p2:#2a2150;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#13111c;--surface:#1c1929;--text:#f1eefc;--muted:#a09bb8;--line:#2e2a44;--p:#8b5cf6;--p2:#2a2150;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;min-height:100vh}
+aside{width:230px;background:var(--surface);border-right:1px solid var(--line);padding:24px 14px;flex-shrink:0}
+.logo{font-size:26px;font-weight:800;color:var(--p);padding:0 10px 24px}
+.nav{padding:11px 12px;border-radius:10px;color:var(--text);font-size:14px;margin-bottom:4px}
+.nav.on{background:var(--p);color:#fff}
+main{flex:1;padding:28px;min-width:0}
+h1{margin:0;font-size:26px}
+.sub{color:var(--muted);font-size:14px;margin:4px 0 20px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card b{display:block;font-size:26px;color:var(--p)}
+.card span{color:var(--muted);font-size:13px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+input,select,button{font:inherit;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text)}
+input{flex:1;min-width:160px}
+.pri{background:var(--p);color:#fff;border-color:var(--p);cursor:pointer;font-weight:600}
+.wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;min-width:620px}
+th{background:var(--p2);color:var(--muted);font-weight:500;text-align:left;font-size:13px}
+th,td{padding:13px 16px;font-size:14px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+.tag{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;background:var(--p2)}
+.Present{color:var(--ok)}.Late{color:var(--warn)}.Absent{color:var(--bad)}.Out{color:var(--p)}
+.act button{padding:6px 10px;font-size:12px;cursor:pointer;margin-right:4px}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+@media(max-width:720px){aside{display:none}main{padding:16px}}
+.nav{cursor:pointer}.view{display:none}.view.on{display:block}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.Pending{color:var(--warn)}.Approved{color:var(--ok)}.Rejected{color:var(--bad)}
+.pf{max-width:420px;display:grid;gap:10px}
+.nav2{padding:11px 12px;border-radius:10px;font-size:14px;cursor:pointer;color:var(--muted);margin-top:16px}
+</style>
+</head>
+<body>
+<!-- ===== SIDEBAR: ម៉ឺនុយខាងឆ្វេង. data-v ត្រូវតែត្រូវនឹង id របស់ <section> (v-xxx) ===== -->
+<aside>
+<div class="logo">Tracker attendance</div>
+<div class="nav on" data-v="dash">Dashboard</div>
+<div class="nav" data-v="dir">Employee Directory</div>
+<div class="nav" data-v="att">Attendance Management</div>
+<div class="nav" data-v="leave">Leave Records</div>
+<div class="nav" data-v="prof">My Profile</div>
+<div class="nav2" id="resetDemo">Reset demo data</div>
+</aside>
+<!-- ===== MAIN: មាតិកា. មួយ <section class="view"> ជាមួយទំព័រ, មួយដែលមាន class "on" ទើបបង្ហាញ ===== -->
+<main>
+<p class="sub" id="date"></p>
+
+<!-- ទំព័រ 1: Dashboard -->
+<section class="view on" id="v-dash"><h1>Dashboard</h1><p class="sub">Today overview</p>
+<div class="cards" id="dcards"></div></section>
+
+<!-- ទំព័រ 2: Employee Directory -->
+<section class="view" id="v-dir"><h1>Employee Directory</h1><p class="sub">Manage your team</p>
+<div class="form"><input id="dirName" placeholder="Full name"><input id="dirPos" placeholder="Position"><input id="dirEmail" placeholder="Email"><button class="pri" id="dirAdd">Add employee</button></div>
+<div class="wrap"><table><thead><tr><th>Name</th><th>Position</th><th>Email</th><th></th></tr></thead><tbody id="dirRows"></tbody></table></div></section>
+
+<!-- ទំព័រ 3: Attendance Management -->
+<section class="view" id="v-att"><h1>Attendance Management</h1><p class="sub">Daily check-in and check-out</p>
+<div class="cards" id="cards"></div>
+<div class="bar"><input id="name" placeholder="New employee name"><button class="pri" id="add">Add employee</button>
+<select id="filter"><option value="All">All statuses</option><option>Present</option><option>Late</option><option>Absent</option><option>Checked-Out</option></select></div>
+<div class="bar"><input type="month" id="csvMonth"><select id="csvType"><option value="summary">Monthly summary</option><option value="daily">Daily detail</option></select><button class="pri" id="csvBtn">Export CSV</button></div>
+<div class="wrap"><table><thead><tr><th>Name</th><th>Status</th><th>Check-in</th><th>Check-out</th><th>Actions</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p class="sub">Late = check-in after 09:00 AM. Demo data is stored in your browser.</p></section>
+
+<!-- ទំព័រ 4: Leave Records -->
+<section class="view" id="v-leave"><h1>Leave Records</h1><p class="sub">Request and approve leave</p>
+<div class="form"><select id="lvEmp"></select><select id="lvType"><option>Annual</option><option>Sick</option><option>Unpaid</option><option>Other</option></select>
+<input type="date" id="lvStart"><input type="date" id="lvEnd"><input id="lvReason" placeholder="Reason"><button class="pri" id="lvAdd">Submit request</button></div>
+<div class="wrap"><table><thead><tr><th>Name</th><th>Type</th><th>From</th><th>To</th><th>Reason</th><th>Status</th><th></th></tr></thead><tbody id="lvRows"></tbody></table></div></section>
+
+<!-- ទំព័រ 5: My Profile -->
+<section class="view" id="v-prof"><h1>My Profile</h1><p class="sub">View and edit employee details</p>
+<div class="pf"><select id="pfEmp"></select><input id="pfName" placeholder="Name"><input id="pfPos" placeholder="Position"><input id="pfEmail" placeholder="Email"><button class="pri" id="pfSave">Save profile</button></div></section>
+</main>
+<!-- ===== JAVASCRIPT: ទាញទិន្នន័យពី API (fetch) ហើយបង្ហាញក្នុង Table ===== -->
+<script>
+// ===== DEMO MODE: Backend ក្លែងក្លាយ រក្សាទិន្នន័យក្នុង Browser (មិនមាន Server/MySQL) =====
+(function(){
+const K="daftar-demo-v1";
+const pad=n=>String(n).padStart(2,"0");
+const ld=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const lt=d=>pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+function seed(){
+ const emps=[["Hiroshi Tanaka","Developer"],["Sofia Garcia","Designer"],["Marie Dubois","HR"],["Carlos Rivera","Manager"],["Jane Smith","Admin"]].map((e,i)=>({id:i+1,name:e[0],position:e[1],email:e[0].split(" ")[0].toLowerCase()+"@example.com"}));
+ const att={},now=new Date();
+ for(let k=1;k<=12;k++){const d=new Date(now);d.setDate(now.getDate()-k);if(d.getDay()===0||d.getDay()===6)continue;
+  const day={};emps.forEach((e,i)=>{const r=(k*7+i*3)%10;
+   day[e.id]=r===9?{in:null,out:null,status:"Absent"}:{in:r>6?"09:2"+r+":00":"08:4"+(r%6)+":00",out:"17:3"+(r%6)+":00",status:"Checked-Out"}});
+  att[ld(d)]=day}
+ att[ld(now)]={1:{in:"08:42:00",out:null,status:"Present"},2:{in:"09:17:00",out:null,status:"Late"},3:{in:"08:30:00",out:"12:10:00",status:"Checked-Out"}};
+ const leaves=[{id:1,empId:2,leave_type:"Sick",start_date:ld(now),end_date:ld(now),reason:"Medical appointment",status:"Pending"},{id:2,empId:4,leave_type:"Annual",start_date:ld(now),end_date:ld(now),reason:"Family trip",status:"Approved"}];
+ return {emps,att,leaves,users:[],nid:{emp:6,leave:3}};
+}
+let mem=null;
+function load(){if(!mem){try{const s=localStorage.getItem(K);if(s)mem=JSON.parse(s)}catch(e){}mem=mem||seed()}return mem}
+function save(d){mem=d;try{localStorage.setItem(K,JSON.stringify(d))}catch(e){}}
+const J=(d,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{"Content-Type":"application/json"}});
+
+function route(db,me,m,p,b){
+ const admin=me.role==="admin",day=ld(new Date());
+ const A=db.att[day]||(db.att[day]={});
+ let x;
+ if(p==="/api/me")return J(me);
+ if(p==="/api/attendance"&&m==="GET")
+  return J(db.emps.filter(e=>admin||e.id===me.employeeId).map(e=>{const a=A[e.id];return{id:e.id,name:e.name,status:a?a.status:"Absent",check_in:a?a.in:null,check_out:a?a.out:null}}));
+ if((x=p.match(/^\/api\/attendance\/(\d+)\/(check-in|check-out|absent)$/))&&m==="POST"){
+  const id=+x[1];
+  if(!admin&&id!==me.employeeId)return J({error:"Not allowed"},403);
+  if(x[2]==="absent"){if(!admin)return J({error:"Admins only"},403);A[id]={in:null,out:null,status:"Absent"}}
+  else if(x[2]==="check-in"){const t=lt(new Date());A[id]={in:t,out:null,status:t>"09:00:00"?"Late":"Present"}}
+  else{if(!A[id]||!A[id].in)return J({error:"Check in first"},400);A[id].out=lt(new Date());A[id].status="Checked-Out"}
+  return J({ok:true});
+ }
+ if(p==="/api/employees"&&m==="GET")return J(db.emps.filter(e=>admin||e.id===me.employeeId));
+ if(p==="/api/employees"&&m==="POST"){
+  if(!admin)return J({error:"Admins only"},403);
+  const name=(b.name||"").trim();if(!name)return J({error:"Name required"},400);
+  const id=db.nid.emp++;db.emps.push({id,name,position:b.position||null,email:b.email||null});
+  return J({id},201);
+ }
+ if((x=p.match(/^\/api\/employees\/(\d+)$/))){
+  const id=+x[1];
+  if(m==="PUT"){
+   if(!admin&&id!==me.employeeId)return J({error:"Not allowed"},403);
+   const name=(b.name||"").trim();if(!name)return J({error:"Name required"},400);
+   const e=db.emps.find(e=>e.id===id);if(e){e.name=name;e.position=b.position||null;e.email=b.email||null}
+   return J({ok:true});
+  }
+  if(m==="DELETE"){
+   if(!admin)return J({error:"Admins only"},403);
+   db.emps=db.emps.filter(e=>e.id!==id);db.leaves=db.leaves.filter(l=>l.empId!==id);
+   return J({ok:true});
+  }
+ }
+ if(p==="/api/dashboard"){
+  if(!admin)return J({error:"Admins only"},403);
+  const c={};db.emps.forEach(e=>{const s=A[e.id]?A[e.id].status:"Absent";c[s]=(c[s]||0)+1});
+  return J({total:db.emps.length,statuses:Object.keys(c).map(k=>({status:k,n:c[k]})),pendingLeaves:db.leaves.filter(l=>l.status==="Pending").length});
+ }
+ if(p==="/api/leaves"&&m==="GET")
+  return J(db.leaves.filter(l=>admin||l.empId===me.employeeId).slice().reverse().map(l=>({id:l.id,name:(db.emps.find(e=>e.id===l.empId)||{}).name,leave_type:l.leave_type,start_date:l.start_date,end_date:l.end_date,reason:l.reason,status:l.status})));
+ if(p==="/api/leaves"&&m==="POST"){
+  const empId=admin?+b.employee_id:me.employeeId;
+  if(!empId||!b.start_date||!b.end_date)return J({error:"Fill all fields"},400);
+  if(b.end_date<b.start_date)return J({error:"End date is before start date"},400);
+  db.leaves.push({id:db.nid.leave++,empId,leave_type:b.leave_type||"Annual",start_date:b.start_date,end_date:b.end_date,reason:b.reason||null,status:"Pending"});
+  return J({ok:true},201);
+ }
+ if((x=p.match(/^\/api\/leaves\/(\d+)\/(approve|reject)$/))&&m==="POST"){
+  if(!admin)return J({error:"Admins only"},403);
+  const l=db.leaves.find(l=>l.id===+x[1]);if(l)l.status=x[2]==="approve"?"Approved":"Rejected";
+  return J({ok:true});
+ }
+ return J({error:"Not found"},404);
+}
+
+window.fetch=async(url,o={})=>{
+ const m=(o.method||"GET").toUpperCase(),p=new URL(url,location.href).pathname;
+ let b={};try{b=o.body?JSON.parse(o.body):{}}catch(e){}
+ const me={id:0,username:"demo",role:"admin",employeeId:null};
+ const db=load(),r=route(db,me,m,p,b);save(db);return r;
+};
+
+// Export CSV ក្នុង Demo (បង្កើតក្នុង Browser)
+function toCsv(rows){return rows.map(r=>r.map(v=>{let s=String(v==null?"":v);if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}).join(",")).join("\r\n")}
+window.__demoCsv=(month,type)=>{
+ const db=load(),days=Object.keys(db.att).filter(k=>k.indexOf(month)===0).sort();
+ if(type==="daily"){
+  const rows=[["Date","Employee","Status","Check-in","Check-out"]];
+  days.forEach(d=>db.emps.forEach(e=>{const a=db.att[d][e.id];if(a)rows.push([d,e.name,a.status,a.in||"",a.out||""])}));
+  return toCsv(rows);
+ }
+ const rows=[["Employee","Position","On time","Late","Absent","Days recorded"]];
+ db.emps.forEach(e=>{let on=0,late=0,ab=0,rec=0;
+  days.forEach(d=>{const a=db.att[d][e.id];if(!a)return;rec++;if(a.status==="Absent")ab++;if(a.in){if(a.in<="09:00:00")on++;else late++}})
+  rows.push([e.name,e.position||"",on,late,ab,rec])});
+ return toCsv(rows);
+};
+})();
+</script>
+<script>
+// $('id') = ខលីសម្រាប់ document.getElementById, esc() = ការពារ XSS ពេលបង្ហាញអក្សរពី User
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=t=>t?t.slice(0,5):"N/A";
+let E=[],P=[];
+$("date").textContent=new Date().toLocaleDateString(undefined,{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+// api(): មុខងារតែមួយសម្រាប់ហៅ Backend ទាំងអស់ (GET/POST/PUT/DELETE) និងបង្ហាញ alert បើមាន Error
+async function api(url,method="GET",body){
+ try{const r=await fetch(url,{method,headers:{"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
+  const d=await r.json();if(!r.ok){alert(d.error||"Error");return null}return d;
+ }catch(e){alert("Cannot reach server");return null}
+}
+// ពេលចុចម៉ឺនុយ: ប្តូរទំព័រដែលបង្ហាញ ហើយហៅ loadXxx() ដើម្បីទាញទិន្នន័យថ្មី
+const loaders={dash:loadDash,dir:loadDir,att:loadAtt,leave:loadLeave,prof:loadProf};
+document.querySelectorAll(".nav").forEach(n=>n.onclick=()=>{
+ document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("on",x===n));
+ document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="v-"+n.dataset.v));
+ loaders[n.dataset.v]();
+});
+const card=(k,v)=>`<div class="card"><b>${v}</b><span>${k}</span></div>`;
+
+// Dashboard: ហៅ /api/dashboard ហើយបង្ហាញជា Card
+async function loadDash(){
+ const d=await api("/api/dashboard");if(!d)return;
+ const n=s=>(d.statuses.find(x=>x.status===s)||{n:0}).n;
+ $("dcards").innerHTML=card("Employees",d.total)+card("Present",n("Present"))+card("Late",n("Late"))+card("Checked-Out",n("Checked-Out"))+card("Absent",n("Absent"))+card("Pending leaves",d.pendingLeaves);
+}
+// Employee Directory: បង្ហាញបញ្ជី + ប៊ូតុងលុប/បន្ថែម
+async function loadDir(){
+ const d=await api("/api/employees");if(!d)return;P=d;
+ $("dirRows").innerHTML=d.map(e=>`<tr><td>${esc(e.name)}</td><td>${esc(e.position)||"-"}</td><td>${esc(e.email)||"-"}</td><td class="act"><button onclick="delEmp(${e.id})">Delete</button></td></tr>`).join("")||`<tr><td colspan="4" class="empty">No employees</td></tr>`;
+}
+async function delEmp(id){if(confirm("Delete this employee?")){await api("/api/employees/"+id,"DELETE");loadDir()}}
+$("dirAdd").onclick=async()=>{const n=$("dirName").value.trim();if(!n)return;
+ await api("/api/employees","POST",{name:n,position:$("dirPos").value,email:$("dirEmail").value});
+ ["dirName","dirPos","dirEmail"].forEach(i=>$(i).value="");loadDir()};
+
+// Attendance: loadAtt ទាញទិន្នន័យ, act() ហៅ API Check-in/out/Absent, renderAtt() គូរ Table
+async function loadAtt(){const d=await api("/api/attendance");if(d){E=d;renderAtt()}}
+async function act(id,type){
+ await api("/api/attendance/"+id+"/"+({in:"check-in",out:"check-out",abs:"absent"})[type],"POST");loadAtt();
+}
+function renderAtt(){
+ const f=$("filter").value,list=E.filter(e=>f==="All"||e.status===f),c=s=>E.filter(e=>e.status===s).length;
+ $("cards").innerHTML=card("Total",E.length)+card("Present",c("Present"))+card("Late",c("Late"))+card("Absent",c("Absent"));
+ $("rows").innerHTML=list.length?list.map(e=>`<tr><td>${esc(e.name)}</td><td><span class="tag ${e.status==="Checked-Out"?"Out":e.status}">${e.status}</span></td><td>${fmt(e.check_in)}</td><td>${fmt(e.check_out)}</td><td class="act"><button onclick="act(${e.id},'in')">Check in</button><button onclick="act(${e.id},'out')">Check out</button><button onclick="act(${e.id},'abs')">Absent</button></td></tr>`).join(""):`<tr><td colspan="5" class="empty">No records</td></tr>`;
+}
+$("add").onclick=async()=>{const n=$("name").value.trim();if(!n)return;await api("/api/employees","POST",{name:n});$("name").value="";loadAtt()};
+$("filter").onchange=renderAtt;
+
+const opts=()=>P.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join("");
+// Leave: ទាញបុគ្គលិក + ច្បាប់, បង្ហាញប៊ូតុង Approve/Reject តែពេល Status = Pending
+async function loadLeave(){
+ const [emps,d]=await Promise.all([api("/api/employees"),api("/api/leaves")]);if(!emps||!d)return;
+ P=emps;const cur=$("lvEmp").value;$("lvEmp").innerHTML=opts();if(cur)$("lvEmp").value=cur;
+ $("lvRows").innerHTML=d.map(l=>`<tr><td>${esc(l.name)}</td><td>${l.leave_type}</td><td>${l.start_date}</td><td>${l.end_date}</td><td>${esc(l.reason)||"-"}</td><td><span class="tag ${l.status}">${l.status}</span></td><td class="act">${l.status==="Pending"?`<button onclick="lv(${l.id},'approve')">Approve</button><button onclick="lv(${l.id},'reject')">Reject</button>`:""}</td></tr>`).join("")||`<tr><td colspan="7" class="empty">No leave requests</td></tr>`;
+}
+async function lv(id,a){await api("/api/leaves/"+id+"/"+a,"POST");loadLeave()}
+$("lvAdd").onclick=async()=>{
+ const r=await api("/api/leaves","POST",{employee_id:$("lvEmp").value,leave_type:$("lvType").value,start_date:$("lvStart").value,end_date:$("lvEnd").value,reason:$("lvReason").value});
+ if(r){$("lvReason").value="";loadLeave()}};
+
+function fillProf(){const e=P.find(x=>x.id==$("pfEmp").value)||{};$("pfName").value=e.name||"";$("pfPos").value=e.position||"";$("pfEmail").value=e.email||""}
+// Profile: ជ្រើសបុគ្គលិក ហើយកែ/Save តាម PUT /api/employees/:id
+async function loadProf(){const d=await api("/api/employees");if(!d)return;P=d;const cur=$("pfEmp").value;$("pfEmp").innerHTML=opts();if(cur)$("pfEmp").value=cur;fillProf()}
+$("pfEmp").onchange=fillProf;
+$("pfSave").onclick=async()=>{const r=await api("/api/employees/"+$("pfEmp").value,"PUT",{name:$("pfName").value,position:$("pfPos").value,email:$("pfEmail").value});if(r){alert("Saved");loadProf()}};
+
+$("csvMonth").value=new Date().toISOString().slice(0,7);
+loadDash();
+</script>
+<script>
+// Demo: Export CSV និង Reset
+$("csvBtn").onclick=()=>{const m=$("csvMonth").value,t=$("csvType").value;if(!m){alert("Pick a month");return}
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+window.__demoCsv(m,t)],{type:"text/csv"}));
+ a.download="attendance-"+t+"-"+m+".csv";a.click()};
+$("resetDemo").onclick=()=>{try{localStorage.removeItem("daftar-demo-v1")}catch(e){}location.reload()};
+</script>
+</body>
+</html>

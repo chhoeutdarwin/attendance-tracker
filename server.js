@@ -60,7 +60,7 @@ app.delete('/api/employees/:id', wrap(async (req, res) => {
 app.post('/api/attendance/:id/check-in', wrap(async (req, res) => {
   await db.query(
     `INSERT INTO attendance (employee_id, work_date, check_in, status)
-     VALUES (?, CURDATE(), CURTIME(), IF(CURTIME() > '08:00:00','Late','Present'))
+     VALUES (?, CURDATE(), CURTIME(), IF(CURTIME() > '09:00:00','Late','Present'))
      ON DUPLICATE KEY UPDATE check_in = VALUES(check_in), check_out = NULL, status = VALUES(status)`,
     [req.params.id]);
   res.json({ ok: true });

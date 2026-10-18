@@ -76,7 +76,7 @@ tr:last-child td{border-bottom:0}
 <div class="bar"><input id="name" placeholder="New employee name"><button class="pri" id="add">Add employee</button>
 <select id="filter"><option value="All">All statuses</option><option>Present</option><option>Late</option><option>Absent</option><option>Checked-Out</option></select></div>
 <div class="wrap"><table><thead><tr><th>Name</th><th>Status</th><th>Check-in</th><th>Check-out</th><th>Actions</th></tr></thead><tbody id="rows"></tbody></table></div>
-<p class="sub">Late = check-in after 08:00 AM. Data is stored in MySQL.</p></section>
+<p class="sub">Late = check-in after 09:00 AM. Data is stored in MySQL.</p></section>
 
 <!-- ទំព័រ 4: Leave Records -->
 <section class="view" id="v-leave"><h1>Leave Records</h1><p class="sub">Request and approve leave</p>
@@ -145,7 +145,7 @@ const opts=()=>P.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join(
 async function loadLeave(){
  const [emps,d]=await Promise.all([api("/api/employees"),api("/api/leaves")]);if(!emps||!d)return;
  P=emps;const cur=$("lvEmp").value;$("lvEmp").innerHTML=opts();if(cur)$("lvEmp").value=cur;
- $("lvRows").innerHTML=d.map(l=>`<tr><td>${esc(l.name)}</td><td>${l.leave_type}</td><td>${l.start_date}</td><td>${l.end_date}</td><td>${esc(l.reason)||"-"}</td><td><span class="tag ${l.status}">${l.status}</span></td><td class="act">${l.status==="Pending"?`<button onclick="lv(${l.id},'approve')">Approve</button><button onclick="lv(${l.id},'reject')">Reject</button>`:""}</td></tr>`).join("")||`<tr><td colspan="7" class="empty">No leave requests</td></tr>`;
+ $("lvRows").innerHTML=d.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.leave_type)}</td><td>${l.start_date}</td><td>${l.end_date}</td><td>${esc(l.reason)||"-"}</td><td><span class="tag ${l.status}">${l.status}</span></td><td class="act">${l.status==="Pending"?`<button onclick="lv(${l.id},'approve')">Approve</button><button onclick="lv(${l.id},'reject')">Reject</button>`:""}</td></tr>`).join("")||`<tr><td colspan="7" class="empty">No leave requests</td></tr>`;
 }
 async function lv(id,a){await api("/api/leaves/"+id+"/"+a,"POST");loadLeave()}
 $("lvAdd").onclick=async()=>{
