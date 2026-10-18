@@ -252,7 +252,7 @@ const opts=()=>P.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join(
 async function loadLeave(){
  const [emps,d]=await Promise.all([api("/api/employees"),api("/api/leaves")]);if(!emps||!d)return;
  P=emps;const cur=$("lvEmp").value;$("lvEmp").innerHTML=opts();if(cur)$("lvEmp").value=cur;
- $("lvRows").innerHTML=d.map(l=>`<tr><td>${esc(l.name)}</td><td>${l.leave_type}</td><td>${l.start_date}</td><td>${l.end_date}</td><td>${esc(l.reason)||"-"}</td><td><span class="tag ${l.status}">${l.status}</span></td><td class="act">${l.status==="Pending"?`<button onclick="lv(${l.id},'approve')">Approve</button><button onclick="lv(${l.id},'reject')">Reject</button>`:""}</td></tr>`).join("")||`<tr><td colspan="7" class="empty">No leave requests</td></tr>`;
+ $("lvRows").innerHTML=d.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.leave_type)}</td><td>${l.start_date}</td><td>${l.end_date}</td><td>${esc(l.reason)||"-"}</td><td><span class="tag ${l.status}">${l.status}</span></td><td class="act">${l.status==="Pending"?`<button onclick="lv(${l.id},'approve')">Approve</button><button onclick="lv(${l.id},'reject')">Reject</button>`:""}</td></tr>`).join("")||`<tr><td colspan="7" class="empty">No leave requests</td></tr>`;
 }
 async function lv(id,a){await api("/api/leaves/"+id+"/"+a,"POST");loadLeave()}
 $("lvAdd").onclick=async()=>{
