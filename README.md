@@ -22,12 +22,12 @@ A full-stack employee attendance management app with a purple dashboard UI.
 ### Setup
 1. Clone the repo and install packages:
 ```
-   git clone https://github.com/YOUR_USERNAME/attendance-tracker.git
+   git clone https://github.com/chhoeutdarwin/attendance-tracker.git
    cd attendance-tracker
    npm install
 ```
 2. Open `schema.sql` in MySQL Workbench and run it to create the database and tables.
-3. Copy `.env.example` to `.env` and fill in your MySQL password and database name (`attendance_db`).
+3. Copy `.env.example` to `.env` and fill in your MySQL password and database name (`mytrackerapp`).
 4. Start the server:
 ```
    npm start
