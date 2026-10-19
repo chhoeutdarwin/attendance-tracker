@@ -38,3 +38,16 @@ CREATE TABLE IF NOT EXISTS leave_requests (
 -- ៤. បុគ្គលិកគំរូ (Sample data)
 INSERT INTO employees (name, position, email) VALUES
 ('Optimus Prime', 'Developer', 'Prime@example.com'),
+
+
+-- ដំណើរការក្នុង MySQL Workbench (បន្ថែមតារាង users ប៉ុណ្ណោះ មិនប៉ះតារាងចាស់ទេ)
+USE mytrackerapp;
+
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  password_hash VARCHAR(100) NOT NULL,            -- រក្សា Hash មិនមែន Password ពិតទេ
+  role ENUM('admin','employee') NOT NULL DEFAULT 'employee',
+  employee_id INT NULL UNIQUE,                    -- ភ្ជាប់គណនីនេះទៅបុគ្គលិកម្នាក់ (Admin អាចទទេ)
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
