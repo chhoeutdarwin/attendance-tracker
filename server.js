@@ -62,6 +62,10 @@ const adminOnly = (req, res, next) =>
   isAdmin(req) ? next() : res.status(403).json({ error: 'Admins only' });
 
 const LEAVE_TYPES = ['Annual', 'Sick', 'Unpaid', 'Other'];
+// LATE_AFTER ក្នុង .env (ឧ. 09:05 ឬ 09:05:00). Late = Check-in ក្រោយម៉ោងនេះ. បើអត់ដាក់ ឬខុសទម្រង់ ប្រើ 09:00:00
+const _la = String(process.env.LATE_AFTER || '09:00').trim();
+const LATE_AFTER = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(_la) ? (_la.length === 5 ? _la + ':00' : _la) : '09:00:00';
+console.log('Late after ' + LATE_AFTER);
 const USERNAME_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const goodPassword = p => typeof p === 'string' && p.length >= 8 && p.length <= 72;
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10); // ឱ្យពេល Login ខុសមានល្បឿនដូចគ្នា
@@ -100,7 +104,7 @@ app.use('/api', async (req, res, next) => {
     const [rows] = await db.query('SELECT id, username, role, employee_id FROM users WHERE id = ?', [uid]);
     if (!rows.length) return req.session.destroy(() => res.status(401).json({ error: 'Please log in' }));
     const u = rows[0];
-    req.user = { id: u.id, username: u.username, role: u.role, employeeId: u.employee_id };
+    req.user = { id: u.id, username: u.username, role: u.role, employeeId: u.employee_id, lateAfter: LATE_AFTER };
     next();
   } catch (err) {
     console.error(err);
@@ -180,9 +184,9 @@ app.post('/api/attendance/:id/check-in', wrap(async (req, res) => {
   if (!canAct(req, req.params.id)) return res.status(403).json({ error: 'Not allowed' });
   await db.query(
     `INSERT INTO attendance (employee_id, work_date, check_in, status)
-     VALUES (?, CURDATE(), CURTIME(), IF(CURTIME() > '09:05:00','Late','Present'))
+     VALUES (?, CURDATE(), CURTIME(), IF(CURTIME() > ?,'Late','Present'))
      ON DUPLICATE KEY UPDATE check_in = VALUES(check_in), check_out = NULL, status = VALUES(status)`,
-    [req.params.id]);
+    [req.params.id, LATE_AFTER]);
   res.json({ ok: true });
 }));
 
