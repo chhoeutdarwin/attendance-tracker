@@ -12,8 +12,7 @@
 :root[data-theme="dark"]{--bg:#13111c;--surface:#1c1929;--text:#f1eefc;--muted:#a09bb8;--line:#2e2a44;--p:#8b5cf6;--p2:#2a2150;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24;color-scheme:dark}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;min-height:100vh;visibility:hidden}
-body.ready{visibility:visible}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;min-height:100vh}
 /* .adm = ធាតុសម្រាប់ Admin ប៉ុណ្ណោះ. Employee មើលមិនឃើញ (Server ក៏ហាមឃាត់ដែរ) */
 body.employee .adm{display:none!important}
 aside{width:230px;background:var(--surface);border-right:1px solid var(--line);padding:24px 14px;flex-shrink:0}
@@ -164,9 +163,20 @@ function seed(){
  return {emps,att,leaves,users,nid:{emp:6,leave:3,user:3}};
 }
 let mem=null;
-function load(){if(!mem){try{const s=localStorage.getItem(K);if(s)mem=JSON.parse(s)}catch(e){}mem=mem||seed()}return mem}
+function validDb(d){
+ return d&&Array.isArray(d.emps)&&d.att&&typeof d.att==="object"&&
+  Array.isArray(d.leaves)&&Array.isArray(d.users)&&d.nid&&
+  typeof d.nid.emp==="number"&&typeof d.nid.leave==="number"&&typeof d.nid.user==="number";
+}
+function load(){
+ if(!mem){
+  try{const s=localStorage.getItem(K);if(s)mem=JSON.parse(s)}catch(e){mem=null}
+  if(!validDb(mem)){mem=seed();setS(0);try{localStorage.setItem(K,JSON.stringify(mem))}catch(e){}}
+ }
+ return mem
+}
 function save(d){mem=d;try{localStorage.setItem(K,JSON.stringify(d))}catch(e){}}
-const J=(d,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{"Content-Type":"application/json"}});
+const J=(d,s=200)=>({status:s,ok:s>=200&&s<300,json:async()=>d});
 const badPw=p=>!p||p.length<8||p.length>72;
 
 function route(db,me,m,p,b){
@@ -312,13 +322,14 @@ const fmt=t=>t?t.slice(0,8):"N/A"; // បង្ហាញ HH:MM:SS
 let E=[],P=[],ME=null;
 const isAdmin=()=>ME&&ME.role==="admin";
 $("date").textContent=new Date().toLocaleDateString(undefined,{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+function demoShowLogin(){document.body.classList.add("ready");$("demoLogin").classList.add("on");$("dlU").focus()}
 
 // api(): មុខងារតែមួយសម្រាប់ហៅ Backend ទាំងអស់. បើ 401 (មិនទាន់ Login/ផុតកំណត់) ទៅទំព័រ Login
 async function api(url,method="GET",body){
  try{const r=await fetch(url,{method,headers:{"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
   if(r.status===401){demoShowLogin();return null}
   const d=await r.json();if(!r.ok){alert(d.error||"Error");return null}return d;
- }catch(e){alert("Cannot reach server");return null}
+ }catch(e){console.error("Demo startup/API error:",e);document.body.classList.add("ready");alert("Demo error: "+(e&&e.message?e.message:String(e)));return null}
 }
 
 // ប្តូរទំព័រ ហើយទាញទិន្នន័យថ្មី
@@ -417,7 +428,6 @@ $("pwSave").onclick=async()=>{
 </script>
 <script>
 // ===== Demo: Login form, Reset, Export CSV =====
-function demoShowLogin(){document.body.classList.add("ready");$("demoLogin").classList.add("on");$("dlU").focus()}
 $("dlAdmin").onclick=()=>{$("dlU").value="admin";$("dlP").value="admin123"};
 $("dlEmp").onclick=()=>{$("dlU").value="employee";$("dlP").value="employee123"};
 $("dlForm").onsubmit=async e=>{
